@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  <!--resultMap标签：表字段与属性的映射 -->
+ <mapper namespace="com.zhidi.dao.IEmpDao">
+ <select id="queryByPage" resultType="emp">
+ 	select * from emp limit #{firstResult},#{maxResult}
+ </select>
+ <select id="queryByDept" resultType="map">
+ 	select e.ename,d.dname from emp e,dept d where e.deptno=d.deptno and d.deptno=#{deptno}
+ </select>
+ 
+  	<resultMap id="queryByVO" type="com.zhidi.entity.EmpVO">
+  	
+  		<id column="empno" property="empno"/>
+  		<result column ="ename" property="ename"/>
+  		<result column ="job" property="job"/>
+  		<result column ="mgr" property="mgr"/>
+  		<result column ="hiredate" property="hiredate"/>
+  		<result column ="sal" property="sal"/>
+  		<result column ="comm" property="comm"/>
+  		<result column ="deptno" property="deptno"/>
+  		<result column ="dname" property="dname"/>
+  		<result column ="loc" property="loc"/>
+  		<result column ="version" property="version"/>
+  		
+  	</resultMap>
+ 	<select id="queryByVO" resultMap="queryByVO">
+  	select e.ename,
+  			e.job,
+  			e.mgr,
+  			e.hiredate,
+  			e.sal,
+			e.comm,
+  			e.deptno,
+  			d.dname,
+  			d.loc,
+  			d.version 
+  		from emp e 
+  		left join dept d
+  		 on 
+  		 	e.deptno=d.deptno 
+  		 where d.deptno=#{deptno}
+  	</select>
+  	
+  	<!-- 分頁条件查询	 -->
+  <select id="queryByPage2" resultType="emp">
+  	select *from emp where 1=1
+  	
+  		<if test="params.ename!=null and params.ename != ''">
+  		
+  			and ename like concat('%',#{params.ename},'%')
+  		</if>
+  			limit #{firstResult},#{maxResult}
+  	</select> 
+  	
+  	<!-- 如果不在where子句后拼接恒等式，就需要使用<where>元素 -->
+  	<select id="queryByPage3" resultType="emp">
+  		select *from emp
+  		<!--where元素会为条件拼接上where关键字，并且会将where后面条件中多于的and和or去掉  -->
+	  	<where>
+	  			<if test="params.ename !=null and params.ename !=''">
+	  				ename like concat('%',#{params.ename},'%')
+	  			</if>
+	  			
+	  			<if test="params.sal !=null">
+	  				and sal>#{params.sal}
+	  			</if >
+	  	</where>
+	  	limit #firstResult},#{maxResult}
+  	 </select>
+  	 
+  	 <!-- 多分支选择类似于java中的switch case -->
+  	 <select id="queryByPage4" resultType="emp">
+  	 	select * from emp
+  	 	<where>
+  	 		<choose>
+  	 			<when test="params.ename!=null and params.ename!=''">
+  	 					ename like concat('%',#{params.ename},'%')
+  	 			</when>
+  	 			
+  	 			<when test="params.sal !=null"> 
+  	 					sal>#{params.sal}
+  	 			</when>
+  	 			<otherwise>deptno=1</otherwise>
+  	 		</choose>
+  	 	</where>
+  	 	limit #{firstResult},#{maxResult}
+  	 </select>
+  	 
+  	 
+  	 <!-- foreach: 可以用于遍历集合参数，一般应用在带有 in 的语句
+  	 			delete from emp where empno in( , , , )
+  	 			select * from emp where empno in( , , ,)
+  	 			 collection:所要遍历的集合或数组   item:每次变量的结果  
+  	 			 open:开始遍历时的符号   sparator:变量的元素以该符号分割  
+  	 			 close:遍历结束时的 
+  --> 
+  	 			
+
+  	 <delete id="batchDelete">
+  	 		
+  	 		delete from emp where empno in
+  	 		
+  	 		<foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+  	 </delete>
+  	 
+   <!-- <sql>元素 可以用来封装sql中的重复部分，供其他地方调用  refid="selectField" 相当于 * refid引用<sql>-->
+  <sql id="selectField">empno,ename,job,mgr,hiredate,sal,comm,deptno</sql>
+  
+  	 
+  <select id="queryByDeptNo" parameterType="dept" resultType="emp">
+  	  
+  	   select 
+		  	<include refid="selectField"/>
+		  	
+		  	 from emp where deptno in 
+		  	
+  	<!--where deptno in ( , , , ) collection="depts"遍历之前的集合，item="dept"遍历之后的每个元素，separator=","以逗号分隔 -->
+  	<foreach collection="depts" item="dept" open="(" separator="," close=")">
+  		#{dept.deptno}
+  	</foreach>
+  </select>
+  
+  <!-- set元素用于更新sql語句	默认后面跟上set -->
+  <update id="update" parameterType="emp">
+  	update emp
+	  	<set>
+	  		<if test="ename != null and ename != ''" >
+	  			ename=#{ename},
+	  		</if>
+	  		<if test="job != null and job != ''">
+	  			job=#{job}
+	  		</if>
+	  	</set>
+	  	where empno=#{empno}
+  </update>
+  
+ 
+  <!-- <bind>：可以将某个值存入上下文中，然后可以通过ognl表达式的  _parameter对象获取  -->
+  <!--  “#”会对参数进行预处理（对其进行类型转化等），“$”不会对参数进行处理，会将获取到的参数直接设置到sql语句中 
+  --> 
+  <select id="queryLike" resultType="emp">
+  		<bind name="bindValue" value="'%'+ _parameter.ename + '%'"/>
+  		select * from emp where ename like #{bindValue}
+  </select>
+  
+  
+  </mapper> 
+  

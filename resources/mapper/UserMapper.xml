@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.zhidi.dao.IUserDao">
+	<resultMap type="com.zhidi.entity.User" id="userMap">
+		<id property="id" column="id" />
+		<result property="userName" column="user_name" />
+		<result property="password" column="password" />
+		<result property="phone" column="phone" />
+		<result property="createTime" column="create_time" />
+		<result property="updateTime" column="update_time" />
+		<!-- 对关联查询进行映射 -->
+		<association property="role" column="role_id"
+			javaType="com.zhidi.entity.Role">
+			<id property="id" column="id" />
+			<result property="roleName" column="role_name" />
+			<result property="createTime" column="create_time" />
+			<result property="updateTime" column="update_time" />
+		</association>
+	</resultMap>
+	<!-- 关联查询使用resultMap将结果映射到实体中 -->
+	<select id="queryById" resultMap="userMap">
+		SELECT
+			tu.id,
+			tu.user_name,
+			tu.password,
+			tu.phone,
+			tu.create_time,
+			tu.update_time,
+			tr.id,
+			tr.role_name,
+			tr.create_time,
+			tr.update_time
+		FROM
+			tb_users tu
+		LEFT JOIN
+			tb_roles tr
+		ON
+			tu.role_id=tr.id
+		WHERE
+			tu.id=#{id}
+		
+
+	</select>
+</mapper>
